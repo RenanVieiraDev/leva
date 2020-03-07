@@ -1,5 +1,5 @@
 export class ValidacoesForm{
-    public validarFormularioCadastroCliente(dadosForm):Promise<any>{
+    public validarFormularioCadastroCliente(dadosForm,arquivos):Promise<any>{
         //resolve 0 === ok;//REJECT > / 1 nome /2 sexo / 3 data nascimento / 4 CPF /5 EMAIL/ 6 SENHA;
         return new Promise<number>((resolve,reject)=>{
             if(!this.valoresVazios(dadosForm.nome))reject(1);
@@ -8,8 +8,20 @@ export class ValidacoesForm{
             if(!this.testeCpf(dadosForm.cpf))reject(4);
             if(!this.testeEmail(dadosForm.email))reject(5);
             if(!this.testeSenha(dadosForm.senha,dadosForm.confSenha))reject(6);
+            if(!this.verifiraSeAImagem(arquivos.arquivo))reject(7);
             resolve(0)
         });
+    }
+
+    public verifiraSeAImagem(arquivo){
+        if(arquivo != null ){
+            if(arquivo.size > 0){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        return false;
     }
 
     public testeEmail(email):boolean{
@@ -55,5 +67,20 @@ export class ValidacoesForm{
                         no site www.azure.com.br.`
         }
     }
+
+    public verificaStatusOndline(valorTimeStemp):boolean{
+        let diferenca = Math.abs(new Date().getTime() - valorTimeStemp);
+        let minutos = (diferenca/1000)/60;
+        if(minutos < 3)return true;
+        return false;
+    }
+
+    public verificaStatusOnline(valorTimeStemp):boolean{
+        let diferenca = new Date().getTime() - valorTimeStemp
+        let minutos = ((diferenca/1000)/60).toFixed(0);
+        if(parseInt(minutos) <= 3)return true;
+        return false;
+    }
+
 
 }

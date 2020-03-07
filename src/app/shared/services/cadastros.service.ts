@@ -2,7 +2,7 @@ import * as firebase from 'firebase';
 
 export class Cadastros{
 
-    public cadastrarCliente(dadosCliente):Promise<any>{
+    public cadastrarCliente(dadosCliente,arquivo):Promise<any>{
         dadosCliente.nivel = 2;
         dadosCliente.horaDataRegistro = this.retornaHoraDataAtual();
         dadosCliente.verificacao = false;
@@ -13,6 +13,7 @@ export class Cadastros{
                 firebase.database().ref(`clientes/${ok.user.uid}`)
                 .set(dadosCliente)
                 .then(()=>{
+                    this.salvaImgStorage(`imagensUsuarios/${ok.user.uid}/${arquivo.nomeImagem}`,arquivo.arquivo);
                     var use = firebase.auth().currentUser;
                     use.sendEmailVerification()
                     .then(()=>{
@@ -32,7 +33,14 @@ export class Cadastros{
         })
     }
 
+    public salvaImgStorage(pathNome,arquivo):void{
+        firebase.storage().ref()
+        .child(pathNome)
+        .put(arquivo);
+    }
+
     public cadastrarPedidoCorrida(dadosMotorista,dadosCorrida):Promise<any>{
+        //console.log(dadosCorrida)
         return new Promise<any>((resolve,reject)=>{
             firebase.database().ref(`motoristas/${dadosMotorista.dadosMotorista.UIDMotorista}/corridas/${localStorage.getItem('UID')}`)
             .set(dadosCorrida)
@@ -70,6 +78,27 @@ export class Cadastros{
                 reject(err);
             });
         });
+    }
+
+    async contraPropostaAceitaPedido(UIDMotorista){
+        try{
+            await firebase.database().ref(`motoristas/${UIDMotorista}/corridas/${localStorage.getItem('UID')}/pedidoAceito`).set('ok');
+            await firebase.database().ref(`motoristas/${UIDMotorista}/corridas/${localStorage.getItem('UID')}/contraPropostaMotorista/contraPropostaAceita`).set('ok');
+        }catch{
+            console.log('erro!');
+        }       
+    }
+
+    async contraPropostaNegarPedido(UIDMotorista,arrayPedidoNegados){
+        arrayPedidoNegados.push(UIDMotorista)
+        try{
+            await firebase.database().ref(`motoristas/${UIDMotorista}/corridas/${localStorage.getItem('UID')}/pedidoAceito`).set('nao');
+            await firebase.database().ref(`motoristas/${UIDMotorista}/corridas/${localStorage.getItem('UID')}/pedidoNegadoPor`).set(arrayPedidoNegados);
+            await firebase.database().ref(`motoristas/${UIDMotorista}/corridas/${localStorage.getItem('UID')}/contraPropostaMotorista/contraPropostaAceita`).set('nao');
+            return 'ok';
+        }catch{
+            return 'erro!';
+        }       
     }
 
 }

@@ -6,7 +6,7 @@
       <ion-item (click)="calcRota(pesquisa)" class="ion-margin-horizontal itemPesquisa" *ngFor="let pesquisa of resultadosDePesquisa">
         {{pesquisa.description}}
       </ion-item>
-      <ion-button class="ion-margin-top"  (click)="back()" color="dark" fill="clear" size="small" [hidden]="!destination" *ngIf="pedidoCorridaIniciada === ''">
+      <ion-button class="ion-margin-top"  (click)="back()" color="dark" fill="clear" size="small" [hidden]="!destination" *ngIf="pedidoCorridaIniciada === 'pedidoFase1'">
         <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
       </ion-button>
 
@@ -85,7 +85,7 @@
       <ion-grid>
         <ion-row>
           <ion-col size="4" style="text-align: center;">
-            <img src="../../assets/usuario.png" style="width: 50%;">
+            <img *ngIf="pedidoDeCorrida" src="{{pedidoDeCorrida.urlImagemPerfilMotorista}}" style="width: 50%;">
           </ion-col>
           <ion-col size="8">
             <h3 style="margin:0px">{{pedidoDeCorrida.motoristaNome}}</h3>
@@ -116,7 +116,8 @@
         <ion-row>
 
           <ion-col size="4">
-            <img class="imgHeadChat online" src="../../assets/usuario.png" class="">
+            <img class="imgHeadChat online" *ngIf="pedidoDeCorrida" src="{{pedidoDeCorrida.urlImagemPerfilMotorista}}" class="">
+            <!--colocar imagem do perfil do motorista-->
           </ion-col>
           <ion-col size="8">
             <h3>{{pedidoDeCorrida.motoristaNome}}</h3>
@@ -124,12 +125,12 @@
               <li style="margin: 0px;padding: 0px;">Para: {{(corridaViewMenu.nomeLocal).substring(0,15)}}...</li>
               <li style="margin: 0px;padding: 0px;"> Distancia: {{pedidoDeCorrida.distancia}}</li>
               <li style="margin: 0px;padding: 0px;">Duração: {{pedidoDeCorrida.duracao}}</li>
-              <li style="margin: 0px;padding: 0px;">Valor proposto:R$ {{pedidoDeCorrida.contraPropostaMotorista.valor}}</li>
+              <li style="margin: 0px;padding: 0px;">Valor proposto:R${{pedidoDeCorrida.contraPropostaMotorista.valor}}</li>
             </ul>
           </ion-col>
           <ion-col size="12" style="text-align: center;">
-            <ion-button>Aceitar</ion-button> 
-            <ion-button  color="danger">Negar</ion-button>
+            <ion-button (click)="aceitarContraProposta()"> Aceitar </ion-button> 
+            <ion-button  (click)="negarContraProposta()" color="danger">Negar</ion-button>
             <!--<img src="../../assets/loadings/Infinity-1s-200px.gif" width="25%">-->
           </ion-col>
 
@@ -143,8 +144,7 @@
             <ion-grid>
               <ion-row>
                 <ion-col size="3">
-                  <img class="imgHeadChat online"  src="../../assets/us.jpg">
-                  <!--<img class="imgHeadChat online" *ngIf="pedidoCorridaIniciada === 'ok'" [src]="pedidoDeCorrida.imgMotorista">-->
+                  <img class="imgHeadChat online"  *ngIf="pedidoDeCorrida" src="{{pedidoDeCorrida.urlImagemPerfilMotorista}}">
                 </ion-col>
                 <ion-col size="7" style="text-align:left;">
                  <span class="nomemotorista" *ngIf="pedidoCorridaIniciada === 'ok'"><b>{{pedidoDeCorrida.motoristaNome}}</b></span>

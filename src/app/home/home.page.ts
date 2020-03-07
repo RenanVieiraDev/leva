@@ -52,6 +52,7 @@ private totalEstrelasParaMotorista:number;
 private comentarioClassificacaoMotorista = new FormGroup({'comentario':new FormControl(null)});
 private dadosFormPropostaCliente = new FormGroup({'valor':new FormControl(null)});
 private contraPropostaAtiva:boolean = false;
+private imagemPerfilUser;
 
   constructor(
     public plataforma:Platform,
@@ -63,7 +64,8 @@ private contraPropostaAtiva:boolean = false;
     public alertController: AlertController
     ) {}
 
-  ngOnInit(){
+  async ngOnInit(){
+    this.imagemPerfilUser = await this.realTime.pegaImagemPerfilUsuario();
     this.mapaElement = this.mapaElement.nativeElement;
     this.mapaElement.style.width = this.plataforma.width()+'px';
     this.mapaElement.style.height = this.plataforma.height()+'px';
@@ -233,6 +235,7 @@ private contraPropostaAtiva:boolean = false;
   }
 
   async calculaValorCorrida(ltdLgnDestino,descricaoDestino){
+    let dadosUser = await this.realTime.getDadosUser();
     this.pedidoCorridaIniciada='pedidoFase1';
   //base 2.50//minima 5.50//por km 2.00//por minuto 0.50
     const base=2.50,fixo=0.75,minima=5.50,porKm=2.00,porMinuto=0.50;
@@ -258,7 +261,9 @@ private contraPropostaAtiva:boolean = false;
             ondeEstou:''
             };
           this.pedidoDeCorrida ={
-            nomeCliente:null,
+            nomeLocalCliente:result.originAddresses[0],
+            urlImagemPerfilUsuario:this.imagemPerfilUser,
+            nomeCliente:dadosUser.nome,
             localClienteCords:this.origenMaker.getPosition(),
             destinoCords:ltdLgnDestino,
             UIDCliente:localStorage.getItem('UID'),
@@ -272,9 +277,10 @@ private contraPropostaAtiva:boolean = false;
             distancia:result.rows[0].elements[0].distance.text,
             duracao:result.rows[0].elements[0].duration.text,
             valorCorrida:valorTotalCorrida.toFixed(2),
-            statusDeCorrida:'aguardando', //3 estados:(aguardando),(iniciada),(finalizada)
+            statusDeCorrida:'aguardando', //4 estados:(aguardando),(iniciada),(finalizada),(recusada)
             propostaClienteValor:{valor:'',propostaAceita:''},
-            contraPropostaMotorista:{valor:'',contraPropostaAceita:''},
+            contraPropostaMotorista:{valor:'',contraPropostaAceita:''
+            },
           };
         });
       });
@@ -287,7 +293,8 @@ private contraPropostaAtiva:boolean = false;
         this.pedidoCorridaIniciada='aguardando';
         this.realTime.getListaMotoristaOnlines()
         .then(resposta=>{
-          //rankear motorista por proximidade
+          if(resposta.length > 0){
+             //rankear motorista por proximidade
           let proximidadeMotoristas=[],organizaRankMoto=[],tempoParaExecutar=0,rankOrganizadoMotorista=[];
           for(let key in resposta ){
           this.calculaDistEntreDoisPontos(resposta[key].localAtual)
@@ -312,6 +319,10 @@ private contraPropostaAtiva:boolean = false;
                 this.notificaPedidoParaMotorista();
             }
           })
+          }
+          }else{
+            this.presentAlertSystem('','Não a motorista disponivel','Desculpe o incoveniente, mais no momento não a motoristas disponiveis, tente mais tarde.');
+            setTimeout(()=>{this.back();},5000);
           }
         })
         .catch(err=>{
@@ -359,7 +370,8 @@ private contraPropostaAtiva:boolean = false;
         } //fim do if <<
         totalMotoristasListados++;
       }
-      if(totalMotoristasListados ===  this.listaContatosMotoristasOn.length){
+      
+      if(totalMotoristasListados === this.listaContatosMotoristasOn.length){
         this.pedidoCorridaIniciada='';
         this.presentAlertConfirm('Motorista indisponivel','Não a motoristas disponiveis no momento, aguarde e tente novamente daqui a uns minutos!');
       };
@@ -374,55 +386,90 @@ private contraPropostaAtiva:boolean = false;
     let makerListParaRemocao:Array<any>= [''];
      firebase.database().ref(pathPedido)
       .on('value', corridaSnapshot=> {
-
-      if(corridaSnapshot.val().propostaClienteValor.propostaAceita === 'ok' ||
-      corridaSnapshot.val().contraPropostaMotorista.contraPropostaAceita === 'ok'
-      ){
-        this. atualizaInformacaoDoPedidoCorrida(corridaSnapshot.val());
-        this.contraPropostaAtiva = false;
-        this.pedidoCorridaIniciada = '';
-        if(makerListParaRemocao[0])makerListParaRemocao[0].remove();
-        const MARCADO = this.map.addMarkerSync({
-          title: 'Mototrista',
-          icon:'../../assets/icon/icons8-fiat-500-48.png',
-          animation:GoogleMapsAnimation.DROP,
-          //position:{lat: -8.4148556, lng: -37.0500923}
-          position:corridaSnapshot.val().localAtualMotorista
-        });
-
-        this.pedidoCorridaIniciada = 'ok';
-        makerListParaRemocao[0]=MARCADO;
-
-        //verifica status da corrida
-        if(this.pedidoDeCorrida.statusDeCorrida === 'finalizada'){
-          this.classificacaoMotorista = true;
+        if(corridaSnapshot.val().propostaClienteValor.propostaAceita === 'contraProposta' &&
+            corridaSnapshot.val().contraPropostaMotorista.contraPropostaAceita === "" &&
+            corridaSnapshot.val().contraPropostaMotorista.valor > 0
+          ){
+            this. atualizaInformacaoDoPedidoCorrida(corridaSnapshot.val());
+            this.contraPropostaAtiva = true;
+            this.pedidoCorridaIniciada = '';
+        }else if(
+          corridaSnapshot.val().propostaClienteValor.propostaAceita === 'contraProposta' &&
+          corridaSnapshot.val().pedidoAceito === 'ok' &&
+          corridaSnapshot.val().contraPropostaMotorista.contraPropostaAceita === "ok" &&
+          corridaSnapshot.val().contraPropostaMotorista.valor > 0
+        ){
+          this. atualizaInformacaoDoPedidoCorrida(corridaSnapshot.val());
+          this.contraPropostaAtiva = false;
           this.pedidoCorridaIniciada = '';
-        };
+          if(makerListParaRemocao[0])makerListParaRemocao[0].remove();
 
-      }else if(corridaSnapshot.val().propostaClienteValor.propostaAceita === 'contraProposta'){
-        this.contraPropostaAtiva = true;
-        this.pedidoCorridaIniciada = '';
-        if(corridaSnapshot.val().contraPropostaMotorista.contraPropostaAceita === 'nao'){
+          const MARCADO = this.map.addMarkerSync({
+            title: 'Mototrista',
+            icon:'../../assets/icon/icons8-fiat-500-48.png',
+            animation:GoogleMapsAnimation.DROP,
+            position:corridaSnapshot.val().localAtualMotorista
+          });
+          this.pedidoCorridaIniciada = 'ok';
+          makerListParaRemocao[0]=MARCADO;
+  
+          //verifica status da corrida
+          if(corridaSnapshot.val().statusDeCorrida === 'finalizada'){
+            this.classificacaoMotorista = true;
+            this.pedidoCorridaIniciada = '';
+          }
+        }else if(
+          corridaSnapshot.val().propostaClienteValor.propostaAceita === 'contraProposta' &&
+          corridaSnapshot.val().pedidoAceito === 'nao' &&
+          corridaSnapshot.val().contraPropostaMotorista.contraPropostaAceita === "nao"
+        ){
+          this. atualizaInformacaoDoPedidoCorrida(corridaSnapshot.val());
           this.contraPropostaAtiva = false;
           this.pedidoCorridaIniciada = 'aguardando';
-          this.pedidoDeCorrida.pedidoNegadoPor.push(corridaSnapshot.val().motoristaUID);
           this.notificaPedidoParaMotorista();
           this.removeConexao(pathPedido);
+        }else if(
+          corridaSnapshot.val().propostaClienteValor.propostaAceita === 'ok' &&
+          corridaSnapshot.val().pedidoAceito === 'ok' &&
+          corridaSnapshot.val().contraPropostaMotorista.contraPropostaAceita === "" &&
+          corridaSnapshot.val().contraPropostaMotorista.valor == 0
+        ){
+          this. atualizaInformacaoDoPedidoCorrida(corridaSnapshot.val());
+          this.contraPropostaAtiva = false;
+          this.pedidoCorridaIniciada = 'ok';
+          if(makerListParaRemocao[0])makerListParaRemocao[0].remove();
+
+          const MARCADO = this.map.addMarkerSync({
+            title: 'Mototrista',
+            icon:'../../assets/icon/icons8-fiat-500-48.png',
+            animation:GoogleMapsAnimation.DROP,
+            position:corridaSnapshot.val().localAtualMotorista
+          });
+          makerListParaRemocao[0]=MARCADO;
+  
+          //verifica status da corrida
+          if(corridaSnapshot.val().statusDeCorrida === 'finalizada'){
+            this.classificacaoMotorista = true;
+            this.pedidoCorridaIniciada = '';
+          };
+        }else if(
+          corridaSnapshot.val().propostaClienteValor.propostaAceita === 'nao' &&
+          corridaSnapshot.val().pedidoAceito === 'nao' &&
+          corridaSnapshot.val().contraPropostaMotorista.contraPropostaAceita === "" &&
+          corridaSnapshot.val().contraPropostaMotorista.valor == 0
+        ){
+          this.removeConexao(pathPedido);
+          this.atualizaInformacaoDoPedidoCorrida(corridaSnapshot.val());
+          this.contraPropostaAtiva = false;
+          this.pedidoCorridaIniciada = 'aguardando';
+          this.notificaPedidoParaMotorista();
         }
-      }else if(corridaSnapshot.val().propostaClienteValor.propostaAceita === 'nao'){
-        this.contraPropostaAtiva = false;
-        this.pedidoCorridaIniciada = 'aguardando';
-        this.pedidoDeCorrida.pedidoNegadoPor.push(corridaSnapshot.val().motoristaUID);
-        this.notificaPedidoParaMotorista();
-        this.removeConexao(pathPedido);
-      }
     });
   }
 
   public atualizaInformacaoDoPedidoCorrida(info){
      //armazenando dados atualizados do pedido pelo motorista
-     this.pedidoDeCorrida = info
-     console.log(this.pedidoDeCorrida);
+     this.pedidoDeCorrida = info;
   }
 
   public abrirFecharChat():void{
@@ -526,6 +573,13 @@ public atualizaSaldoEmConta(acao):void{
       }
     }
     this.totalEstrelasParaMotorista = totalEstrelasMarcadas
+ }
+
+ public aceitarContraProposta():void{
+    this.cadastro.contraPropostaAceitaPedido(this.pedidoDeCorrida.motoristaUID);
+ }
+ public negarContraProposta():void{
+  this.cadastro.contraPropostaNegarPedido(this.pedidoDeCorrida.motoristaUID,this.pedidoDeCorrida.pedidoNegadoPor);
  }
 
 }

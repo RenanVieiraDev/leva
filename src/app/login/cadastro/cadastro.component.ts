@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit,ViewChild } from '@angular/core';
 import { AlertController } from '@ionic/angular';
 import {FormGroup,FormControl} from '@angular/forms';
 import {Router} from '@angular/router'
@@ -13,6 +13,9 @@ import {authService} from '../../shared/services/auth.service';
 })
 export class CadastroComponent implements OnInit {
 
+  @ViewChild('imgPerf',{static:false}) public imgPerf;
+
+  private imgPerfilMotor = {base64:null,blob:null};
   public loadingButton = false;
   public telaConfEmail = false;
   public dadosClientes = new FormGroup({
@@ -36,10 +39,12 @@ export class CadastroComponent implements OnInit {
 
   public cadastroCliente():void{
     this.loadingButton = true;
-    this.validacoes.validarFormularioCadastroCliente(this.dadosClientes.value)
+    let arquivo = {nomeImagem:'perfil.jpeg',arquivo:this.imgPerfilMotor.blob,tipo:'perfil'};
+    this.validacoes.validarFormularioCadastroCliente(this.dadosClientes.value,arquivo)
     .then((retorno)=>{
-        this.cadastro.cadastrarCliente(this.dadosClientes.value)
+        this.cadastro.cadastrarCliente(this.dadosClientes.value,arquivo)
         .then((resposta)=>{
+          this.imgPerfilMotor.base64 = null
           this.dadosClientes.reset();
           this.loadingButton = false;
           this.telaConfEmail = true;
@@ -71,6 +76,9 @@ export class CadastroComponent implements OnInit {
         case 6:
           this.presentAlert('Dado incorreto','Senha','Senha incorreta,revisa as senhas');
         break;
+        case 7:
+          this.presentAlert('Dado incorreto','Imagem perfil','Por favor, carregue uma imagem para seu perfil para continuar o cadastro.');
+        break;
       }
     })
   }
@@ -88,4 +96,36 @@ export class CadastroComponent implements OnInit {
     this.telaConfEmail = false;
     this.rota.navigate(['/login']);
   }
+
+  public clickUploadImagem():void{
+    (this.imgPerf.nativeElement).click();
+  }
+
+  public converteImagemParaBlob(arquivo):Promise<any>{
+    return new Promise<any>((resolve,reject)=>{
+      let readerBlob = new FileReader();
+      readerBlob.onload =  () => {
+        let blob = new Blob([readerBlob.result], { type: "image/jpeg" });
+        resolve(blob);
+      }
+      readerBlob.readAsArrayBuffer(arquivo);
+    })
+   
+  }
+
+  public converteImagemParaBase64(arquivo):Promise<any>{
+    return new Promise<any>((resolve,reject)=>{
+      let readerBase64 = new FileReader();
+      readerBase64.onload = ()=> {
+        resolve(readerBase64.result);
+      }
+      readerBase64.readAsDataURL(arquivo);
+    }); 
+  }
+ 
+  async eviarImgPerf(){
+    this.imgPerfilMotor.blob = await this.converteImagemParaBlob(this.imgPerf.nativeElement.files[0])
+    this.imgPerfilMotor.base64 = await this.converteImagemParaBase64(this.imgPerf.nativeElement.files[0]);
+  }
+
 }

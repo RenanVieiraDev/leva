@@ -1,6 +1,14 @@
 import * as firebase from 'firebase';
 import { Observable } from 'rxjs';
+import {ValidacoesForm} from './validacoesform.service';
+import { Injectable } from '@angular/core';
+
+@Injectable()
 export class GetRealTimeDados{
+
+    constructor(
+        public validacao:ValidacoesForm
+    ){}
 
     public getListaMotoristaOnlines():Promise<any>{
         return new Promise<any>((resolve,reject)=>{
@@ -9,9 +17,10 @@ export class GetRealTimeDados{
             .once('value')
             .then(resposta=>{
                 for(let key in resposta.val()){
-                  if(resposta.val()[key].online){
+                  if(this.validacao.verificaStatusOnline(resposta.val()[key].online)){
                     motoristasOnlines.push(resposta.val()[key]);
                   }
+
             }
                 resolve(motoristasOnlines);
             })
@@ -41,4 +50,27 @@ export class GetRealTimeDados{
         });
     }
 
+    public getDadosUser():Promise<any>{
+        return new Promise<any>((resolve,reject)=>{
+            firebase.database().ref(`clientes/${localStorage.getItem('UID')}`)
+            .once('value')
+            .then((res)=>{
+                resolve(res.val())
+            })
+            .catch(err=>{
+                reject(err);
+            })
+        });
+    }
+    public pegaImagemPerfilUsuario():Promise<any>{
+        return new Promise<any>((resolve,reject)=>{
+            firebase.storage().ref()
+            .child(`imagensUsuarios/${localStorage.getItem('UID')}/perfil.jpeg`)
+            .getDownloadURL()
+            .then((urlImagem)=>{
+                resolve(urlImagem);
+            })
+            .catch((err)=>{reject(err)});
+        });
+    }
 }
