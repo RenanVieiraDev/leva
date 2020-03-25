@@ -23,6 +23,7 @@ export class authService implements CanActivate{
             resolve(dados);
           })
           .catch((err)=>{
+              console.log(err);
               reject(err);
           })
         })
@@ -42,23 +43,14 @@ export class authService implements CanActivate{
     }
 
     public logouf():void{
-        /*firebase.auth().signOut()
-        .then((resposta)=>{
-            localStorage.removeItem('codPath');
-            localStorage.removeItem('OTelJS.ClientId');
-            localStorage.removeItem('firebase:host:azura-baa9d.firebaseio.com');
-            localStorage.removeItem('email');
-            localStorage.removeItem('emailEmpresa');
-            localStorage.removeItem('tipo');
-            localStorage.removeItem('nomeUser');
-            localStorage.removeItem('valorDiaria');
-            localStorage.removeItem('valorComum');
-            localStorage.removeItem('valorMensal');
+        firebase.auth().signOut()
+        .then(()=>{
+            localStorage.removeItem('UID');
+            localStorage.removeItem('nivel');
+            localStorage.removeItem('firebase:host:levataxi.firebaseio.com');
             localStorage.removeItem('OTelJS.ClientId');
             location.reload();
-            //this.mostrarMenu.emit(false);
-            //this.router.navigate(['login']);
-        })*/
+        });
     }
 
     public salvaDadosNoStorage(dadosAserSalvo:Array<any>):void{

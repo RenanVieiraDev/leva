@@ -14,14 +14,18 @@ import { GooglePlus } from '@ionic-native/google-plus/ngx';
 import {ReactiveFormsModule} from '@angular/forms';
 //components angular
 import {CadastroComponent} from './login/cadastro/cadastro.component';
+import {ConfigAcountComponent} from './home/config-acount/config-acount.component'
 //services
 import {authService} from './shared/services/auth.service';
 import {Cadastros} from './shared/services/cadastros.service';
 import {ValidacoesForm} from './shared/services/validacoesform.service';
 import {GetRealTimeDados} from './shared/services/getSetRealTimeDados.service'
+import {Camera} from '@ionic-native/camera/ngx';
+import { File } from '@ionic-native/file/ngx';
+
 
 @NgModule({
-  declarations: [AppComponent,CadastroComponent],
+  declarations: [AppComponent,CadastroComponent,ConfigAcountComponent],
   entryComponents: [],
   imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule,ReactiveFormsModule],
   providers: [
@@ -34,6 +38,8 @@ import {GetRealTimeDados} from './shared/services/getSetRealTimeDados.service'
     Cadastros,
     ValidacoesForm,
     GetRealTimeDados,
+    Camera,
+    File,
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy }
   ],
   bootstrap: [AppComponent]

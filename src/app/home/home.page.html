@@ -1,29 +1,49 @@
 <ion-content>
   <div #map>
-    <ion-searchbar [(ngModel)]="search" (ionChange)="searchChanged()" placeholder="Para onde?" [hidden]="destination"></ion-searchbar>
+    <div class="menuLateral" *ngIf="mostraMenuLateralLeft" (click)="mostraMenuLeft()">
+      <nav class="navbarLeft">
+        <header class="cabecalhoNav">
+          <img *ngIf="imagemPerfilUser" [src]="imagemPerfilUser" style="width: 70px;height: 70px;border-radius:100%;">
+          <div style="text-align: right;width: 100%;"><b>{{nomeUser}}</b></div>
+        </header>
+        <ul style="margin: 0px;padding: 0px;list-style: none; width: 100%;height: 100%;">
+          <!--<li style="width: 100%;padding: 5px;"><img src="../../assets/icon/configIcon.png" style="width: 21px;margin-right: 5px;"><a routerLink="/configAcount">Configuração</a></li>-->
+          <li style="width: 100%;padding: 5px;"><img src="../../assets/icon/bandeirinhaDestinoSalvo.png" style="width: 21px;margin-right: 5px;"><a (click)="abrirListaRotasSalvas()">Destinos salvos</a></li>
+          <li style="width: 100%;padding: 5px;"><img src="../../assets/icon/exitIcon.png" style="width: 21px;margin-right: 5px;"><a (click)="sairAcount()">Sair</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="containerSearch" [hidden]="destination">
+      <ion-searchbar [(ngModel)]="search" (ionChange)="searchChanged()" placeholder="Para onde?" [hidden]="destination"></ion-searchbar>
+    </div>
+    
+    <ion-button class="ion-margin-top"  (click)="back()" color="dark" fill="clear" size="small" [hidden]="!destination" *ngIf="pedidoCorridaIniciada === 'pedidoFase1'">
+      <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+    </ion-button>
+
     <ion-list [hidden]="!search.length">
-      
       <ion-item (click)="calcRota(pesquisa)" class="ion-margin-horizontal itemPesquisa" *ngFor="let pesquisa of resultadosDePesquisa">
         {{pesquisa.description}}
       </ion-item>
-      <ion-button class="ion-margin-top"  (click)="back()" color="dark" fill="clear" size="small" [hidden]="!destination" *ngIf="pedidoCorridaIniciada === 'pedidoFase1'">
-        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
-      </ion-button>
-
-      <ion-button (click)="openMenuBotoesCorridaAtiva()" class="ion-margin-top" color="dark" fill="clear" size="small" *ngIf="pedidoCorridaIniciada === 'ok'" style="padding-top: 5px;padding-bottom: 5px;">
-        <img src="../../assets/icon/hamburg.gif" style="width: 30px; height: 30px;">
-      </ion-button>
-      <div class="ion-margin-horizontal menuBotoesCorridaAtiva" *ngIf="menuBotoesCorridaAtiva">
-        <ul style="list-style: none;">
-          <li>
-            <ion-button shape="round" size="small" color="danger" *ngIf="pedidoDeCorrida.statusDeCorrida === 'aguardando'" (click)="cancelarCorrida()">Cancelar corrida</ion-button>
-          </li>
-        </ul>
-      </div>
     </ion-list>
+
+   <ion-button (click)="openMenuBotoesCorridaAtiva()" class="ion-margin-top" color="dark" fill="clear" size="small" *ngIf="pedidoCorridaIniciada === 'ok'" style="padding-top: 5px;padding-bottom: 5px;">
+      <img src="../../assets/icon/hamburg.gif" style="width: 30px; height: 30px;">
+    </ion-button>
+    <div class="ion-margin-horizontal menuBotoesCorridaAtivaHanburg" *ngIf="menuBotoesCorridaAtiva">
+      <ul style="list-style: none;">
+        <li>
+          <ion-button shape="round" size="small" color="danger" *ngIf="pedidoDeCorrida.statusDeCorrida === 'aguardando'" (click)="cancelarCorrida()">Cancelar corrida</ion-button>
+        </li>
+      </ul>
+    </div>
     
     <div class="ContainerMenuConf" [hidden]="!corridaViewMenu.valorCorrida" *ngIf="pedidoCorridaIniciada === 'pedidoFase1'" style="text-align: center;">
-      
+      <div style="width: 100%;text-align: left;">
+         <img src="../../assets/icon/bandeirinhaDestinoSalvo.png" style="width: 25px; height: 25px;" (click)="salvaRota()" *ngIf="loadingBtnSalvaRota === false">
+         <img src="../../assets/loadings/Infinity-1s-200px.gif" style="width: 30px;height: 25px;" *ngIf="loadingBtnSalvaRota">
+      </div>
       <form [formGroup]="dadosFormPropostaCliente" (submit)="pedirCorrida()">
           <ul style="list-style: none;margin: 0px;padding: 0px;">
             <li style="text-align: left;border-bottom: 1px solid rgba(0,0,0,.1);margin: 5px 0px;padding: 5px;">
@@ -32,12 +52,13 @@
 
                   <ion-col size="2">
                     <img src="../../assets/icon/dinheiro.png" style="width: 80%;margin-top: 50%;">
+                    
                   </ion-col>
 
                   <ion-col>
                     <label>Quanto quer pagar pela corrida?</label><br/>
                     <input formControlName="valor" class="inputTarifaCorrida" type="number"><br/>
-                    <small>Estipule um valor entre o minimo mediano.</small>
+                    <small>O valor estipulado da corrida pelo sistema é {{corridaViewMenu.valorCorrida}}. Estipule um valor entre o minimo mediano.</small>
                   </ion-col>
 
                 </ion-row>
@@ -85,7 +106,7 @@
       <ion-grid>
         <ion-row>
           <ion-col size="4" style="text-align: center;">
-            <img *ngIf="pedidoDeCorrida" src="{{pedidoDeCorrida.urlImagemPerfilMotorista}}" style="width: 50%;">
+            <img *ngIf="pedidoDeCorrida" src="{{pedidoDeCorrida.urlImagemPerfilMotorista}}" style="width: 80px;border-radius: 100%;height: 80px;box-shadow: 3px 3px 3px rgba(0,0,0,.3);">
           </ion-col>
           <ion-col size="8">
             <h3 style="margin:0px">{{pedidoDeCorrida.motoristaNome}}</h3>
@@ -116,7 +137,7 @@
         <ion-row>
 
           <ion-col size="4">
-            <img class="imgHeadChat online" *ngIf="pedidoDeCorrida" src="{{pedidoDeCorrida.urlImagemPerfilMotorista}}" class="">
+            <img class="imgHeadChat" *ngIf="pedidoDeCorrida" src="{{pedidoDeCorrida.urlImagemPerfilMotorista}}">
             <!--colocar imagem do perfil do motorista-->
           </ion-col>
           <ion-col size="8">
@@ -234,6 +255,27 @@
         </ion-grid>
       </div>
       
+    </div>
+
+    <div class="btnMenuLateralLeft" (click)="mostraMenuLeft()" [hidden]="destination"> 
+      <img src="../../assets/icon/iconMenuLateralLeft.png" style="width: 40px;height: 40px;border-radius: 100%;">
+    </div>
+
+    <div class="listaDeRotasSalvas" *ngIf="openListRotasSalvas">
+      <div class="filtroLoading" *ngIf="listaDestinoCarregada === false">
+        <img src="../../assets/loadings/Infinity-1s-200px.gif" style="margin-top: 40%;">
+      </div>
+      <div class="containerListaDestinosSalvos" *ngIf="listaDestinoCarregada">
+        <h3>Destinos salvos</h3>
+
+        <ion-list>
+          <ion-item *ngFor="let destino of destinosSalvos" (click)="calcRota(destino)">
+            <img src="../../assets/icon/bandeirinhaDestinoSalvo.png" style="width: 20px;height: 20px;margin-right: 3px;">
+            <ion-label>{{destino.description}}</ion-label>
+          </ion-item>
+        </ion-list>
+        <ion-button color="success" style="margin-top: 10px; margin-left: 5px;" (click)="fecharListaDestinoSalvos()">Voltar</ion-button>
+      </div>
     </div>
 
   </div>

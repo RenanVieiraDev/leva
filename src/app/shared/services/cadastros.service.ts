@@ -41,6 +41,8 @@ export class Cadastros{
 
     public cadastrarPedidoCorrida(dadosMotorista,dadosCorrida):Promise<any>{
         //console.log(dadosCorrida)
+        dadosCorrida.cancelamentoVisto = false;
+        dadosCorrida.corridaAntiga = false;
         return new Promise<any>((resolve,reject)=>{
             firebase.database().ref(`motoristas/${dadosMotorista.dadosMotorista.UIDMotorista}/corridas/${localStorage.getItem('UID')}`)
             .set(dadosCorrida)
@@ -99,6 +101,25 @@ export class Cadastros{
         }catch{
             return 'erro!';
         }       
+    }
+
+
+    public salvarRotaDestino(rota):Promise<any>{
+        return new Promise<any>((resolve,reject)=>{
+            firebase.database().ref(`clientes/${localStorage.getItem('UID')}/rotasSalvas`)
+            .push(rota)
+            .then(()=>{resolve('salvo')})
+            .catch((err)=>{reject(err)})
+        });
+    }
+
+    public cancelamentoDeCorrida(UIDMotorista):Promise<any>{
+        return new Promise<any>((resolve,reject)=>{
+            firebase.database().ref(`motoristas/${UIDMotorista}/corridas/${localStorage.getItem('UID')}/statusDeCorrida`)
+            .set('cancelada')
+            .then(()=>{resolve('ok')})
+            .catch((err)=>{reject(err)})
+        });
     }
 
 }

@@ -73,4 +73,30 @@ export class GetRealTimeDados{
             .catch((err)=>{reject(err)});
         });
     }
+
+    public pegaNomeUsuario():Promise<any>{
+        return new Promise<any>((resolve,reject)=>{
+            firebase.database().ref(`clientes/${localStorage.getItem('UID')}`)
+            .once('value')
+            .then((res)=>{
+                resolve(res.val().nome)
+            })
+            .catch(err=>{
+                reject(err);
+            })
+        });
+    }
+
+    public pegaListaRotasSalvas():Promise<any>{
+        return new Promise<any>((resolve,reject)=>{
+            firebase.database().ref(`clientes/${localStorage.getItem('UID')}/rotasSalvas`)
+            .once('value')
+            .then((res)=>{
+                resolve(res.val())
+            })
+            .catch((err)=>{
+                reject(err)
+            })
+        });
+    }
 }

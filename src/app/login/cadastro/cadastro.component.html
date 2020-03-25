@@ -33,9 +33,10 @@
                      <ion-col style="text-align: left;padding-top:5%;">
                          <div style="text-align: center;">
                              <div class="inputFile" style="width: 100%;text-align: left;">
-                                <img class="imagemSub" [src]="imgPerfilMotor.base64" *ngIf="imgPerfilMotor.base64 != null" style="width: 100px;height: 100px;border-radius: 15px;">
-                                 <span *ngIf="imgPerfilMotor.base64 === null">imagem de perfil...</span>
-                                 <input type="file" #imgPerf accept=".jpg,.png,.jpeg" (change)="eviarImgPerf()">
+                                <img (click)="abreGaleria()" class="imagemSub" src="{{imgPerfilMotor.base64}}" *ngIf="imgPerfilMotor.base64 != null" style="width: 100px;height: 100px;border-radius: 15px;">
+                                 <!--<span *ngIf="imgPerfilMotor.base64 === null">imagem de perfil...</span>-->
+                                 <!--<input type="file" #imgPerf accept=".jpg,.png,.jpeg" (change)="eviarImgPerf()">-->
+                                 <span (click)="abreGaleria()" *ngIf="imgPerfilMotor.base64 === null">Carregar imagem...</span>
                              </div>
                          </div>
                      </ion-col>

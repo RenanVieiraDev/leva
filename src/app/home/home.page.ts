@@ -3,22 +3,20 @@ import {
   GoogleMap,
   GoogleMapsEvent,
   GoogleMapOptions,
-  CameraPosition,
-  MarkerOptions,
   Marker,
   Environment,
-  MyLocation,
   GoogleMapsAnimation,
   Geocoder
 } from '@ionic-native/google-maps';
 import * as firebase from 'firebase';
-import { Component,ViewChild, OnInit,NgZone, ɵConsole } from '@angular/core';
+import { Component,ViewChild, OnInit,NgZone} from '@angular/core';
 import {Platform,LoadingController} from '@ionic/angular';
 import { Geolocation } from '@ionic-native/geolocation/ngx';
 import {Cadastros} from '../shared/services/cadastros.service';
 import {GetRealTimeDados} from '../shared/services/getSetRealTimeDados.service';
 import { FormGroup, FormControl } from '@angular/forms';
 import { AlertController } from '@ionic/angular';
+import {authService} from '../shared/services/auth.service'
 
 declare var google:any;
 @Component({
@@ -26,9 +24,11 @@ declare var google:any;
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
 })
+
 export class HomePage implements OnInit{
 
 @ViewChild('map',{static:true}) mapaElement:any;
+public mostraMenuLateralLeft = false
 private loading:any;
 private map:GoogleMap
 private search = '';
@@ -53,6 +53,11 @@ private comentarioClassificacaoMotorista = new FormGroup({'comentario':new FormC
 private dadosFormPropostaCliente = new FormGroup({'valor':new FormControl(null)});
 private contraPropostaAtiva:boolean = false;
 private imagemPerfilUser;
+private nomeUser:string;
+private loadingBtnSalvaRota = false;
+private openListRotasSalvas = false;
+private listaDestinoCarregada = false;
+private destinosSalvos = []
 
   constructor(
     public plataforma:Platform,
@@ -61,11 +66,13 @@ private imagemPerfilUser;
     private zone:NgZone,
     public cadastro:Cadastros,
     public realTime:GetRealTimeDados,
-    public alertController: AlertController
+    public alertController: AlertController,
+    public auth:authService
     ) {}
 
   async ngOnInit(){
     this.imagemPerfilUser = await this.realTime.pegaImagemPerfilUsuario();
+    this.nomeUser = await this.realTime.pegaNomeUsuario();
     this.mapaElement = this.mapaElement.nativeElement;
     this.mapaElement.style.width = this.plataforma.width()+'px';
     this.mapaElement.style.height = this.plataforma.height()+'px';
@@ -113,11 +120,12 @@ private imagemPerfilUser;
           handler: (blah) => {}
         }, {
           text: 'Sim',
-          handler: () => {
-            this.atualizaSaldoEmConta('cancelamento');
-            this.back();
-            this.removeConexao(this.pathDoChat);
-            this.removeConexao(this.pathDaCorrida);
+          handler: async () => {
+           await this.cadastro.cancelamentoDeCorrida(this.pedidoDeCorrida.motoristaUID)
+           await this.atualizaSaldoEmConta('cancelamento');
+           await this.back();
+           await this.removeConexao(this.pathDoChat);
+           await this.removeConexao(this.pathDaCorrida);
           }
         }
       ]
@@ -133,8 +141,8 @@ private imagemPerfilUser;
 
     // This code is necessary for browser
     Environment.setEnv({
-      'API_KEY_FOR_BROWSER_RELEASE': 'AIzaSyB1rryHAFIWcdcsCqxxiu7X1INYI9nXexQ',
-      'API_KEY_FOR_BROWSER_DEBUG': 'AIzaSyB1rryHAFIWcdcsCqxxiu7X1INYI9nXexQ'
+      'API_KEY_FOR_BROWSER_RELEASE': 'AIzaSyAKuvd8HlT9Kc7aJSPHdf4LpeiamLLxDYQ',
+      'API_KEY_FOR_BROWSER_DEBUG': 'AIzaSyAKuvd8HlT9Kc7aJSPHdf4LpeiamLLxDYQ'
     });
 
     let mapOptions: GoogleMapOptions = {
@@ -179,7 +187,7 @@ private imagemPerfilUser;
   searchChanged(){
     if(!this.search.trim().length)return;
     if(!this.search)this.resultadosDePesquisa=[];
-    this.googleAutoComplit.getPlacePredictions({input:this.search},prediction=>{
+    this.googleAutoComplit.getPlacePredictions({input:this.search+', arcoverde-PE'},prediction=>{
       this.zone.run(()=>{
         this.resultadosDePesquisa = prediction;
       });
@@ -187,7 +195,8 @@ private imagemPerfilUser;
   }
 
   async calcRota(pesquisa){
-    this.pedidoCorridaIniciada='';
+    this.fecharListaDestinoSalvos();
+    this.pedidoCorridaIniciada='pedidoFase1';
     this.corridaViewMenu={nomeLocal:'',distancia:'',duracao:'',valorCorrida:'',ondeEstou:''};
     this.resultadosDePesquisa = [];
    this.destination = pesquisa;
@@ -277,7 +286,7 @@ private imagemPerfilUser;
             distancia:result.rows[0].elements[0].distance.text,
             duracao:result.rows[0].elements[0].duration.text,
             valorCorrida:valorTotalCorrida.toFixed(2),
-            statusDeCorrida:'aguardando', //4 estados:(aguardando),(iniciada),(finalizada),(recusada)
+            statusDeCorrida:'aguardando', //5 estados:(aguardando),(iniciada),(finalizada),(recusada),(cancelada)
             propostaClienteValor:{valor:'',propostaAceita:''},
             contraPropostaMotorista:{valor:'',contraPropostaAceita:''
             },
@@ -403,10 +412,18 @@ private imagemPerfilUser;
           this.contraPropostaAtiva = false;
           this.pedidoCorridaIniciada = '';
           if(makerListParaRemocao[0])makerListParaRemocao[0].remove();
+          
+          let icon = {
+            url: '../../assets/icon/icons8-fiat-500-48.png',
+            size: {
+              width: 32,
+              height: 24
+            }
+          };
 
           const MARCADO = this.map.addMarkerSync({
             title: 'Mototrista',
-            icon:'../../assets/icon/icons8-fiat-500-48.png',
+            icon:icon,
             animation:GoogleMapsAnimation.DROP,
             position:corridaSnapshot.val().localAtualMotorista
           });
@@ -580,6 +597,43 @@ public atualizaSaldoEmConta(acao):void{
  }
  public negarContraProposta():void{
   this.cadastro.contraPropostaNegarPedido(this.pedidoDeCorrida.motoristaUID,this.pedidoDeCorrida.pedidoNegadoPor);
+ }
+
+ public mostraMenuLeft():void{
+  this.mostraMenuLateralLeft = this.mostraMenuLateralLeft === true?false:true;
+ }
+
+ public salvaRota():void{
+   this.loadingBtnSalvaRota = true;
+    this.cadastro.salvarRotaDestino(this.destination)
+    .then(()=>{
+      this.loadingBtnSalvaRota = false;
+    })
+    .catch(()=>{})
+ }
+
+
+ public fecharListaDestinoSalvos():void{
+  this.openListRotasSalvas = false;
+ }
+
+ public abrirListaRotasSalvas(){
+  this.openListRotasSalvas = this.openListRotasSalvas === false ? true : false;
+  this.destinosSalvos = [];
+  this.realTime.pegaListaRotasSalvas()
+  .then((res)=>{
+    this.listaDestinoCarregada = true
+    for(let key in res){
+      this.destinosSalvos.push(res[key])
+    }
+  })
+  .catch((err)=>{
+    console.log(err)
+  })
+ }
+
+ public sairAcount(){
+  this.auth.logouf();
  }
 
 }

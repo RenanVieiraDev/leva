@@ -1,3 +1,55 @@
+.containerSearch{
+    background-color: white;
+    box-shadow: 3px 3px 3px rgba(0,0,0,.2);
+}
+.menuLateral{
+    top: 0px;
+    left: 0px;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,.2);
+    z-index: 1000;
+}
+.navbarLeft{
+    background-color: #fff;
+    height: 100%;
+    width: 85%;
+}
+.cabecalhoNav{
+    border-bottom: 1px solid rgba(0,0,0,.1);
+    margin-bottom: 10px;
+    padding: 10px;
+    background-image: url('../../assets/backgroundNavLeftHeader.jpg');
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: auto;
+    color: #fff;
+}
+.nomeUserNavbarHeader{
+    font-size:20px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    text-decoration: solid;
+}
+.navbarLeft li{
+    padding-left: 15px;
+}
+.navbarLeft li a{
+    text-decoration: none;
+    color: black;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-size: 20px;
+}
+.btnMenuLateralLeft{
+    position: absolute;
+    left: 0px;
+    bottom: 3px;
+    background:linear-gradient(to bottom,rgba(255,0,0,.8) 10%,rgba(255 ,99 ,71,.7) 70%);
+    border-radius: 0px 15px 0px 0px;
+    text-align: center;
+    width: 60px;
+    height: 60px;
+}
 .itemPesquisa{
     background-color: white;
     box-shadow: 3px 3px 3px rgba(0,0,0,.2);
@@ -58,8 +110,10 @@
     padding: 10px;
 }
 .imgHeadChat{
-    width: 100%;
-    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    border-radius: 100%;
+    box-shadow: 3px 3px 3px rgba(225,225,225,.3);
 }
 .online{
     border:2px solid greenyellow;
@@ -159,10 +213,10 @@
 .off{
     display: none;
 }
-.menuBotoesCorridaAtiva{
+.menuBotoesCorridaAtivaHanburg{
     text-align: center;
-    margin: 0px 13px;
-    background-color: rgba(255 ,255 ,255,.9);
+    margin: 0px 5px;
+    background-color: #fff;
     border-radius: 10px;
     padding: 10px;
     width: 60%;
@@ -219,3 +273,19 @@
     color:red;
     width: 100%;
 }
+.listaDeRotasSalvas{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    top:0px;
+    left: 0px;
+    background-color: #fff;
+    color: black;
+  }
+  .filtroLoading{
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      background-color: rgba(0,0,0,.2);
+  }
