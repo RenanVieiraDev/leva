@@ -41,7 +41,7 @@ export class GetRealTimeDados{
     
     public pegaSaldoEmConta():Promise<any>{
         return new Promise<any>((resolve,reject)=>{
-            firebase.database().ref(`clientes/${localStorage.getItem('UID')}/saldo`)
+            firebase.database().ref(`clientes/${localStorage.getItem('UID')}/saldos`)
             .once('value')
             .then((resposta)=>{
                 resolve(resposta.val());

@@ -6,7 +6,10 @@ export class Cadastros{
         dadosCliente.nivel = 2;
         dadosCliente.horaDataRegistro = this.retornaHoraDataAtual();
         dadosCliente.verificacao = false;
-        dadosCliente.saldo = 0;
+        dadosCliente.saldos = {
+            saldoDevedor : 0,
+            saldoPositivo: 0
+        }
         return new Promise((resolve,reject)=>{
             firebase.auth().createUserWithEmailAndPassword(dadosCliente.email,dadosCliente.senha)
             .then((ok)=>{
@@ -58,7 +61,7 @@ export class Cadastros{
 
     public cadastraSaldoEmConta(valor):Promise<any>{
         return new Promise<any>((resolve,reject)=>{
-            firebase.database().ref(`clientes/${localStorage.getItem('UID')}/saldo`)
+            firebase.database().ref(`clientes/${localStorage.getItem('UID')}/saldos/saldoDevedor`)
             .set(valor)
             .then((ok)=>{
                resolve(ok);
@@ -67,6 +70,14 @@ export class Cadastros{
                reject(err);
             })
         })
+    }
+    public cadastraValorARessacerMotorista(UIDmotor,valor){
+        firebase.database().ref(`motoristas/${UIDmotor}/valoresParaSerRessarcidos`)
+        .push(valor)
+    }
+    public cadastraValorDaTarifaDoMotoristaParaSistema(UIDmotor,valor){
+        firebase.database().ref(`motoristas/${UIDmotor}/valoresTarifaCancelamentosCorridas`)
+        .push(valor)
     }
 
     public cadastrarEstrelasParaMotorista(UidMotorista,valorEstrela,comentario):Promise<any>{

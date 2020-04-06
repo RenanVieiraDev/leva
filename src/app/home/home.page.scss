@@ -61,6 +61,7 @@
     bottom: 2px;
     padding: 15px;
     background-color: #fff;
+    z-index: 1001;
 }
 .imgConfLogo{
     width: 50px;
@@ -81,12 +82,10 @@
 }
 .navegacaoMotoristaContainer{
     position: absolute;
-    left: 0px;
-    right: 0px;
-    bottom: 0px;
-    height: 120px;
+    bottom: 2px;
+    height: 150px;
     background-color: #fff;
-    padding: 10px;
+    padding: 0px 10px 20px 10px;
 }
 .chatFiltro{
     position: absolute;
@@ -236,8 +235,9 @@
     background-color: #fff;
     width: 100%;
     text-align: center;
-    padding: 10px;
+    padding: 20px;
     height: 100%;
+    
 }
 .containerEstrela{
     padding: 0px;
@@ -249,6 +249,7 @@
     margin: 0px 3px;
 }
 .comentario{
+    text-align: center;
     width: 100%;
     margin: 10px 0px;
 }

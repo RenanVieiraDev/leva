@@ -35,11 +35,12 @@
       <ul style="list-style: none;">
         <li>
           <ion-button shape="round" size="small" color="danger" *ngIf="pedidoDeCorrida.statusDeCorrida === 'aguardando'" (click)="cancelarCorrida()">Cancelar corrida</ion-button>
+          <ion-button shape="round" size="small" style="background-color: dimgrey;" *ngIf="pedidoDeCorrida.statusDeCorrida === 'iniciada'" disabled="true" cancelable="true">Cancelar corrida</ion-button> 
         </li>
       </ul>
     </div>
     
-    <div class="ContainerMenuConf" [hidden]="!corridaViewMenu.valorCorrida" *ngIf="pedidoCorridaIniciada === 'pedidoFase1'" style="text-align: center;">
+    <div class="ContainerMenuConf" *ngIf="pedidoCorridaIniciada === 'pedidoFase1'" style="text-align: center;">
       <div style="width: 100%;text-align: left;">
          <img src="../../assets/icon/bandeirinhaDestinoSalvo.png" style="width: 25px; height: 25px;" (click)="salvaRota()" *ngIf="loadingBtnSalvaRota === false">
          <img src="../../assets/loadings/Infinity-1s-200px.gif" style="width: 30px;height: 25px;" *ngIf="loadingBtnSalvaRota">
@@ -57,8 +58,12 @@
 
                   <ion-col>
                     <label>Quanto quer pagar pela corrida?</label><br/>
-                    <input formControlName="valor" class="inputTarifaCorrida" type="number"><br/>
-                    <small>O valor estipulado da corrida pelo sistema é {{corridaViewMenu.valorCorrida}}. Estipule um valor entre o minimo mediano.</small>
+                    <input id="inputLeilaoCorrida" formControlName="valor" class="inputTarifaCorrida" type="number" (input)="calculaValorCorridaComSaldoNegativo($event)"><br/>
+                    <ul style="list-style: none; margin: 0px;padding: 0px;">
+                      <li><small>Valor da corrida pelo sistema {{corridaViewMenu.valorCorrida | currency:'BRL'}}.</small></li>
+                      <li *ngIf="saldoDevedor > 0"><small>Você possui saldo devedor de <b style="color: crimson;">{{saldoDevedor | currency:'BRL'}}.</b></small></li>
+                      <li *ngIf="saldoDevedor > 0"><small>valor da corrida fica <b style="color:black;">{{saldoDevedorCorridaTotal | currency:'BRL'}}</b>.</small></li>
+                    </ul>
                   </ion-col>
 
                 </ion-row>
@@ -138,7 +143,6 @@
 
           <ion-col size="4">
             <img class="imgHeadChat" *ngIf="pedidoDeCorrida" src="{{pedidoDeCorrida.urlImagemPerfilMotorista}}">
-            <!--colocar imagem do perfil do motorista-->
           </ion-col>
           <ion-col size="8">
             <h3>{{pedidoDeCorrida.motoristaNome}}</h3>
@@ -148,11 +152,14 @@
               <li style="margin: 0px;padding: 0px;">Duração: {{pedidoDeCorrida.duracao}}</li>
               <li style="margin: 0px;padding: 0px;">Valor proposto:R${{pedidoDeCorrida.contraPropostaMotorista.valor}}</li>
             </ul>
+            <ul style="margin: 0px;padding: 0px;list-style: none;" *ngIf="saldoDevedor > 0">
+              <li *ngIf="saldoDevedor > 0"><small>Você possui saldo devedor de <b style="color: crimson;">{{saldoDevedor | currency:'BRL'}}.</b></small></li>
+              <li *ngIf="saldoDevedor > 0"><small>valor da corrida fica <b style="color:black;">{{calculaContraPropostaParaRespostaNaView() | currency:'BRL'}}</b>.</small></li>
+            </ul>
           </ion-col>
           <ion-col size="12" style="text-align: center;">
             <ion-button (click)="aceitarContraProposta()"> Aceitar </ion-button> 
             <ion-button  (click)="negarContraProposta()" color="danger">Negar</ion-button>
-            <!--<img src="../../assets/loadings/Infinity-1s-200px.gif" width="25%">-->
           </ion-col>
 
         </ion-row>
@@ -207,49 +214,52 @@
     </div>
 
     <div class="classificarContainer" *ngIf="classificacaoMotorista">
-      <img class="imgHeadChat online" src="../../assets/us.jpg" style="width: 30%;">
+      <img class="imgHeadChat online" src="../../assets/us.jpg" style="width: 130px;height: 130px;margin-top: 10px;">
       <div class="estrelas">
         <ion-grid>
           <ion-row>
             
             <ion-col class="estrela"  (click)="efeitoEstrela(1)">
-              <img  id="est1" src="../../assets/icon/estrelaVazia.png" style="width: 65%;">
+              <img  id="est1" src="../../assets/icon/estrelaVazia.png" style="width: 40px;">
             </ion-col>
 
             <ion-col class="estrela"  (click)="efeitoEstrela(2)">
-             <img  id="est2" src="../../assets/icon/estrelaVazia.png" style="width: 65%;">
+             <img  id="est2" src="../../assets/icon/estrelaVazia.png" style="width: 40px;">
             </ion-col>
 
             <ion-col class="estrela"  (click)="efeitoEstrela(3)">
-             <img  id="est3" src="../../assets/icon/estrelaVazia.png" style="width: 65%;">
+             <img  id="est3" src="../../assets/icon/estrelaVazia.png" style="width: 40px;">
             </ion-col>
 
             <ion-col class="estrela"  (click)="efeitoEstrela(4)">
-             <img  id="est4" src="../../assets/icon/estrelaVazia.png" style="width: 65%;">
+             <img  id="est4" src="../../assets/icon/estrelaVazia.png" style="width: 40px;">
             </ion-col>
 
             <ion-col class="estrela"  (click)="efeitoEstrela(5)">
-             <img  id="est5" src="../../assets/icon/estrelaVazia.png" style="width: 65%;">
+             <img  id="est5" src="../../assets/icon/estrelaVazia.png" style="width: 40px;">
             </ion-col>
 
           </ion-row>
         </ion-grid>
       </div>
       <div class="comentario">
-        <ion-grid>
+        <ion-grid style="width: 100%;">
           <ion-row>
             <ion-col size='12'>
               <label><b>Criticas</b> ou <b>Elogios</b></label>
             </ion-col>
             
-            <form [formGroup]="comentarioClassificacaoMotorista" (submit)="darPontuacaoMotorista()">
-              <ion-col size='12'>
-                <textarea  formControlName="comentario" id="criticaElegioId" class="textComentario" rows="6" value=''></textarea>
-              </ion-col>
-              <ion-col size='12'>
-                <ion-button type="submit">Pronto</ion-button>
-              </ion-col>
-            </form>
+            <ion-col size='12'>
+              <form [formGroup]="comentarioClassificacaoMotorista" (submit)="darPontuacaoMotorista()">
+                <ion-col size='12'>
+                  <textarea  formControlName="comentario" id="criticaElegioId" class="textComentario" rows="6" value=''></textarea>
+                </ion-col>
+                <ion-col size='12'>
+                  <ion-button type="submit">Pronto</ion-button>
+                </ion-col>
+              </form>
+            </ion-col>
+           
 
           </ion-row>
         </ion-grid>

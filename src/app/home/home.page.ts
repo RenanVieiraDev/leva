@@ -28,6 +28,7 @@ declare var google:any;
 export class HomePage implements OnInit{
 
 @ViewChild('map',{static:true}) mapaElement:any;
+@ViewChild('inputLeilaoCorrida',{static:true}) inputLeilaoCorrida:any;
 public mostraMenuLateralLeft = false
 private loading:any;
 private map:GoogleMap
@@ -58,6 +59,8 @@ private loadingBtnSalvaRota = false;
 private openListRotasSalvas = false;
 private listaDestinoCarregada = false;
 private destinosSalvos = []
+private saldoDevedor:any;
+private saldoDevedorCorridaTotal:number = 0 ;
 
   constructor(
     public plataforma:Platform,
@@ -71,6 +74,11 @@ private destinosSalvos = []
     ) {}
 
   async ngOnInit(){
+    firebase.database().ref(`clientes/${localStorage.getItem('UID')}/saldos`)
+    .once('value')
+    .then((res)=>{
+      this.saldoDevedor = parseFloat(res.val().saldoDevedor)
+    });
     this.imagemPerfilUser = await this.realTime.pegaImagemPerfilUsuario();
     this.nomeUser = await this.realTime.pegaNomeUsuario();
     this.mapaElement = this.mapaElement.nativeElement;
@@ -79,6 +87,8 @@ private destinosSalvos = []
     this.mapaElement.style.background = 'red';
     this.loadMap();
   }
+
+
 
   async presentAlertSystem(titulo,subTitulo,msg) {
     const alert = await this.alertController.create({
@@ -108,7 +118,7 @@ private destinosSalvos = []
     await alert.present();
   }
 
-  async presentAlertCancelarCorrida(titulo,msg) {
+  async presentAlertCancelarCorrida(titulo,msg,atualizarSaldo:boolean) {
     const alert = await this.alertController.create({
       header: titulo,
       message: msg,
@@ -121,8 +131,8 @@ private destinosSalvos = []
         }, {
           text: 'Sim',
           handler: async () => {
-           await this.cadastro.cancelamentoDeCorrida(this.pedidoDeCorrida.motoristaUID)
-           await this.atualizaSaldoEmConta('cancelamento');
+          await this.cadastro.cancelamentoDeCorrida(this.pedidoDeCorrida.motoristaUID)
+           if(atualizarSaldo)await this.atualizaSaldoEmConta('cancelamento');
            await this.back();
            await this.removeConexao(this.pathDoChat);
            await this.removeConexao(this.pathDaCorrida);
@@ -195,12 +205,23 @@ private destinosSalvos = []
   }
 
   async calcRota(pesquisa){
-    this.fecharListaDestinoSalvos();
-    this.pedidoCorridaIniciada='pedidoFase1';
-    this.corridaViewMenu={nomeLocal:'',distancia:'',duracao:'',valorCorrida:'',ondeEstou:''};
+    this.destination = pesquisa;
     this.resultadosDePesquisa = [];
-   this.destination = pesquisa;
-   const info = await Geocoder.geocode({address:this.destination.description})
+    this.saldoDevedorCorridaTotal = 0;
+    this.corridaViewMenu={nomeLocal:'',distancia:'',duracao:'',valorCorrida:'',ondeEstou:''};
+
+    this.loading = await this.loadingCtl.create({message:'por favor, aguarde...'});
+    await this.loading.present();
+    
+    firebase.database().ref(`clientes/${localStorage.getItem('UID')}/saldos`)
+    .once('value')
+    .then((res)=>{
+      this.saldoDevedor = parseFloat(res.val().saldoDevedor)
+    });
+    this.dadosFormPropostaCliente.reset();
+    if(this.openListRotasSalvas)this.fecharListaDestinoSalvos();
+  
+   const info = await Geocoder.geocode({address:this.destination.description});
   let markerDestinations:Marker= this.map.addMarkerSync({
     title:this.destination.description,
     icon:'#000',
@@ -211,7 +232,7 @@ private destinosSalvos = []
     origin:this.origenMaker.getPosition(),
     destination:markerDestinations.getPosition(),
     travelMode:'DRIVING'},
-      result=>{
+      async result=>{
         const points = new Array;
         let router = result.routes[0].overview_path;
         for(let i=0;i<router.length;i++){
@@ -225,19 +246,21 @@ private destinosSalvos = []
           color:'#000',
           width:3
         })
-        this.map.moveCamera({target:points});
-        this.map.panBy(0,100);
-        this.calculaValorCorrida(info[0].position,this.destination.description);
+        await this.map.moveCamera({target:points});
+        await this.map.panBy(0,100);
+        await this.calculaValorCorrida(info[0].position,this.destination.description);
+        await this.loading.dismiss();
+        this.pedidoCorridaIniciada='pedidoFase1';
       })
   } 
 
   async back(){
+    this.destination = null;
     this.pedidoCorridaIniciada='';
     this.corridaViewMenu={nomeLocal:'',distancia:'',duracao:'',valorCorrida:'',ondeEstou:''};
     try{
       await this.map.clear();
-      this.destination=null;
-      this.addOriginMaker();
+      await this.addOriginMaker();
     }catch(err){
       this.presentAlertSystem('Error',err.code,err.message);
     }
@@ -288,8 +311,7 @@ private destinosSalvos = []
             valorCorrida:valorTotalCorrida.toFixed(2),
             statusDeCorrida:'aguardando', //5 estados:(aguardando),(iniciada),(finalizada),(recusada),(cancelada)
             propostaClienteValor:{valor:'',propostaAceita:''},
-            contraPropostaMotorista:{valor:'',contraPropostaAceita:''
-            },
+            contraPropostaMotorista:{valor:'',contraPropostaAceita:''}
           };
         });
       });
@@ -298,6 +320,8 @@ private destinosSalvos = []
   public pedirCorrida():void{
     this.pedidoDeCorrida.propostaClienteValor.valor = this.dadosFormPropostaCliente.value.valor === null ? this.pedidoDeCorrida.valorCorrida : (this.dadosFormPropostaCliente.value.valor).toFixed(2);
     let percentualMedio = this.pedidoDeCorrida.valorCorrida - ((this.pedidoDeCorrida.valorCorrida * 40)/100);
+    if(this.saldoDevedor > 0) this.pedidoDeCorrida.saldoDevedorCliente = this.saldoDevedor;
+    
     if(this.dadosFormPropostaCliente.value.valor >= percentualMedio){
         this.pedidoCorridaIniciada='aguardando';
         this.realTime.getListaMotoristaOnlines()
@@ -330,7 +354,7 @@ private destinosSalvos = []
           })
           }
           }else{
-            this.presentAlertSystem('','Não a motorista disponivel','Desculpe o incoveniente, mais no momento não a motoristas disponiveis, tente mais tarde.');
+            this.presentAlertSystem('','Não há motorista disponível','Desculpe o incomodo, mas no momento não há motoristas disponíveis, tente mais tarde.');
             setTimeout(()=>{this.back();},5000);
           }
         })
@@ -366,6 +390,7 @@ private destinosSalvos = []
       for(let key in this.listaContatosMotoristasOn){
         if(this.pedidoDeCorrida.pedidoNegadoPor.indexOf(this.listaContatosMotoristasOn[key].dadosMotorista.UIDMotorista) === -1){
           //'cadastrar pedido da corrida no DB do motorista'
+          this.pedidoDeCorrida.saldoDevedorCliente=this.saldoDevedor;
           this.cadastro.cadastrarPedidoCorrida(this.listaContatosMotoristasOn[key],this.pedidoDeCorrida)
           .then((res)=>{
             //'comece a escultar o pedido'
@@ -468,6 +493,7 @@ private destinosSalvos = []
           if(corridaSnapshot.val().statusDeCorrida === 'finalizada'){
             this.classificacaoMotorista = true;
             this.pedidoCorridaIniciada = '';
+            if(this.menuBotoesCorridaAtiva)this.openMenuBotoesCorridaAtiva();
           };
         }else if(
           corridaSnapshot.val().propostaClienteValor.propostaAceita === 'nao' &&
@@ -550,16 +576,47 @@ public openMenuBotoesCorridaAtiva():void{
   this.menuBotoesCorridaAtiva = this.menuBotoesCorridaAtiva===false?true:false;
 }
 
-public cancelarCorrida():void{
-  this.openMenuBotoesCorridaAtiva();
-  this.presentAlertCancelarCorrida('Atenção!','Você deseja realmente cancelar a corrida? o valor da metade da corrida será cobrado.');
+async cancelarCorrida(){
+  let valorDaCorrida=0;
+  if(this.pedidoDeCorrida.propostaClienteValor.propostaAceita ===  'contraProposta'){
+    valorDaCorrida = parseFloat(this.pedidoDeCorrida.contraPropostaMotorista.valor)/2;
+  }else{
+    valorDaCorrida = parseFloat(this.pedidoDeCorrida.propostaClienteValor.valor)/2;
+  }
+
+  let msgAlert='',atualizarSaldo:boolean;
+  let dist = await this.calculaDistEntreDoisPontos(this.pedidoDeCorrida.localAtualMotorista);
+  if(dist <= 500){
+    msgAlert = `Você deseja realmente cancelar a corrida? o valor de R$ ${valorDaCorrida.toFixed(2)} será cobrado na proxima corrida, referente ao cancelamente`;
+    atualizarSaldo=true;
+  }else{
+    msgAlert = `O cancelamento da corrida não gerara nenhuma despesa para você!, cancelar a corrida?`;
+    atualizarSaldo=false;
+  }
+  await this.openMenuBotoesCorridaAtiva();
+  await this.presentAlertCancelarCorrida('Atenção!',msgAlert,atualizarSaldo);
+
 }
 
-public atualizaSaldoEmConta(acao):void{
+async atualizaSaldoEmConta(acao){
     this.realTime.pegaSaldoEmConta()
-    .then(saldo=>{
+    .then(async saldos=>{
       if(acao==='cancelamento'){
-        this.cadastro.cadastraSaldoEmConta((saldo - (this.pedidoDeCorrida.valorCorrida/2)).toFixed(2));
+        let valorDaCorrida
+        if(this.pedidoDeCorrida.propostaClienteValor.propostaAceita ===  'contraProposta'){
+          valorDaCorrida = this.pedidoDeCorrida.contraPropostaMotorista.valor
+        }else{
+          valorDaCorrida = this.pedidoDeCorrida.propostaClienteValor.valor;
+        }
+        let valorDaCorridaDividido = valorDaCorrida/2;
+        let valorTarifa = (valorDaCorridaDividido*25)/100;
+        let valorASerAcrescentado = valorDaCorridaDividido - valorTarifa;
+        let valorTotalParaDB = parseFloat(saldos.saldoDevedor) + valorDaCorridaDividido;
+
+        await this.cadastro.cadastraSaldoEmConta(valorTotalParaDB);
+        await this.cadastro.cadastraValorDaTarifaDoMotoristaParaSistema(this.pedidoDeCorrida.motoristaUID,valorTarifa);
+        await this.cadastro.cadastraValorARessacerMotorista(this.pedidoDeCorrida.motoristaUID,valorASerAcrescentado);
+      
       }
     })
     .catch(err=>{
@@ -635,5 +692,15 @@ public atualizaSaldoEmConta(acao):void{
  public sairAcount(){
   this.auth.logouf();
  }
+
+  public calculaValorCorridaComSaldoNegativo(event):void{
+    if(this.saldoDevedor > 0){
+      let entradaValor = parseFloat((<HTMLInputElement>event.target).value)
+      this.saldoDevedorCorridaTotal = this.saldoDevedor + entradaValor
+    }
+  }
+  public calculaContraPropostaParaRespostaNaView():number{
+    return this.saldoDevedor + parseFloat(this.pedidoDeCorrida.contraPropostaMotorista.valor)
+  }
 
 }
